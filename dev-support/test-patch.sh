@@ -21,13 +21,6 @@ ulimit -n 2048
 ### Read variables from properties file
 bindir=$(dirname $0)
 
-# Defaults
-if [ -z "$MAVEN_HOME" ]; then
-  MVN=mvn
-else
-  MVN=$MAVEN_HOME/bin/mvn
-fi
-
 GRADLEW=./gradlew
 
 PROJECT_NAME=Geode
@@ -43,7 +36,6 @@ GREP=${GREP:-grep}
 PATCH=${PATCH:-patch}
 DIFF=${DIFF:-diff}
 JIRACLI=${JIRA:-jira}
-FINDBUGS_HOME=${FINDBUGS_HOME}
 FORREST_HOME=${FORREST_HOME}
 ECLIPSE_HOME=${ECLIPSE_HOME}
 
@@ -58,14 +50,12 @@ printUsage() {
   echo "Options:"
   echo "--patch-dir=<dir>      The directory for working and output files (default '/tmp')"
   echo "--basedir=<dir>        The directory to apply the patch to (default current directory)"
-  echo "--mvn-cmd=<cmd>        The 'mvn' command to use (default \$MAVEN_HOME/bin/mvn, or 'mvn')"
   echo "--ps-cmd=<cmd>         The 'ps' command to use (default 'ps')"
   echo "--awk-cmd=<cmd>        The 'awk' command to use (default 'awk')"
   echo "--git-cmd=<cmd>        The 'git' command to use (default 'git')"
   echo "--grep-cmd=<cmd>       The 'grep' command to use (default 'grep')"
   echo "--patch-cmd=<cmd>      The 'patch' command to use (default 'patch')"
   echo "--diff-cmd=<cmd>       The 'diff' command to use (default 'diff')"
-  echo "--findbugs-home=<path> Findbugs home directory (default FINDBUGS_HOME environment variable)"
   echo "--forrest-home=<path>  Forrest home directory (default FORREST_HOME environment variable)"
   echo "--dirty-workspace      Allow the local SVN workspace to have uncommitted changes"
   echo "--run-tests            Run all tests below the base directory"
@@ -96,9 +86,6 @@ parseArgs() {
     --basedir=*)
       BASEDIR=${i#*=}
       ;;
-    --mvn-cmd=*)
-      MVN=${i#*=}
-      ;;
     --ps-cmd=*)
       PS=${i#*=}
       ;;
@@ -125,9 +112,6 @@ parseArgs() {
       ;;
     --jira-password=*)
       JIRA_PASSWD=${i#*=}
-      ;;
-    --findbugs-home=*)
-      FINDBUGS_HOME=${i#*=}
       ;;
     --forrest-home=*)
       FORREST_HOME=${i#*=}
@@ -262,23 +246,9 @@ prebuildWithoutPatch () {
   echo "======================================================================"
   echo ""
   echo ""
-  if [[ ! -d hadoop-common-project ]]; then
-    cd $bindir/..
-    echo "Compiling $(pwd)"
-    echo "$GRADLEW clean build -x test > $PATCH_DIR/trunkCompile.txt 2>&1"
-    $GRADLEW clean build -x test > $PATCH_DIR/trunkCompile.txt 2>&1
-    if [[ $? != 0 ]] ; then
-      echo "Top-level trunk compilation is broken?"
-      JIRA_COMMENT="$JIRA_COMMENT
-
-    {color:red}-1 patch{color}.  Top-level trunk compilation may be broken."
-      return 1
-    fi
-    cd -
-  fi
   echo "Compiling $(pwd)"
-  echo "$GRADLE clean build -x test -D${PROJECT_NAME}PatchProcess  > $PATCH_DIR/trunkJavacWarnings.txt 2>&1"
-  $GRADLE clean build -x test -D${PROJECT_NAME}PatchProcess  > $PATCH_DIR/trunkJavacWarnings.txt 2>&1
+  echo "$GRADLE clean build -x test -x integrationTest -x distributedTest -D${PROJECT_NAME}PatchProcess  > $PATCH_DIR/trunkJavacWarnings.txt 2>&1"
+  $GRADLE clean build -x test -x integrationTest -x distributedTest -D${PROJECT_NAME}PatchProcess  > $PATCH_DIR/trunkJavacWarnings.txt 2>&1
   if [[ $? != 0 ]] ; then
     echo "Trunk compilation is broken?"
     JIRA_COMMENT="$JIRA_COMMENT
@@ -401,8 +371,8 @@ checkJavacWarnings () {
   echo "======================================================================"
   echo ""
   echo ""
-  echo "$MVN clean test -DskipTests -D${PROJECT_NAME}PatchProcess > $PATCH_DIR/patchJavacWarnings.txt 2>&1"
-  $MVN clean test -DskipTests -D${PROJECT_NAME}PatchProcess > $PATCH_DIR/patchJavacWarnings.txt 2>&1
+  echo "$GRADLE clean build -x test -x integrationTest -x distributedTest -D${PROJECT_NAME}PatchProcess > $PATCH_DIR/patchJavacWarnings.txt 2>&1"
+  $GRADLE clean build -x test -x integrationTest -x distributedTest -D${PROJECT_NAME}PatchProcess > $PATCH_DIR/patchJavacWarnings.txt 2>&1
   if [[ $? != 0 ]] ; then
     JIRA_COMMENT="$JIRA_COMMENT
 
@@ -411,8 +381,8 @@ checkJavacWarnings () {
   fi
   ### Compare trunk and patch javac warning numbers
   if [[ -f $PATCH_DIR/patchJavacWarnings.txt ]] ; then
-    $GREP '\[WARNING\]' $PATCH_DIR/trunkJavacWarnings.txt > $PATCH_DIR/filteredTrunkJavacWarnings.txt
-    $GREP '\[WARNING\]' $PATCH_DIR/patchJavacWarnings.txt > $PATCH_DIR/filteredPatchJavacWarnings.txt
+    $GREP -i 'warning' $PATCH_DIR/trunkJavacWarnings.txt > $PATCH_DIR/filteredTrunkJavacWarnings.txt
+    $GREP -i 'warning' $PATCH_DIR/patchJavacWarnings.txt > $PATCH_DIR/filteredPatchJavacWarnings.txt
     trunkJavacWarnings=`cat $PATCH_DIR/filteredTrunkJavacWarnings.txt | $AWK 'BEGIN {total = 0} {total += 1} END {print total}'`
     patchJavacWarnings=`cat $PATCH_DIR/filteredPatchJavacWarnings.txt | $AWK 'BEGIN {total = 0} {total += 1} END {print total}'`
     echo "There appear to be $trunkJavacWarnings javac compiler warnings before the patch and $patchJavacWarnings javac compiler warnings after applying the patch."
@@ -478,40 +448,6 @@ $JIRA_COMMENT_FOOTER"
 }
 
 ###############################################################################
-### Check there are no changes in the number of Checkstyle warnings
-checkStyle () {
-  echo ""
-  echo ""
-  echo "======================================================================"
-  echo "======================================================================"
-  echo "    Determining number of patched checkstyle warnings."
-  echo "======================================================================"
-  echo "======================================================================"
-  echo ""
-  echo ""
-  echo "THIS IS NOT IMPLEMENTED YET"
-  echo ""
-  echo ""
-  echo "$MVN test checkstyle:checkstyle -DskipTests -D${PROJECT_NAME}PatchProcess"
-  $MVN test checkstyle:checkstyle -DskipTests -D${PROJECT_NAME}PatchProcess
-
-  JIRA_COMMENT_FOOTER="Checkstyle results: $BUILD_URL/artifact/trunk/build/test/checkstyle-errors.html
-$JIRA_COMMENT_FOOTER"
-  ### TODO: calculate actual patchStyleErrors
-#  patchStyleErrors=0
-#  if [[ $patchStyleErrors != 0 ]] ; then
-#    JIRA_COMMENT="$JIRA_COMMENT
-#
-#    {color:red}-1 checkstyle{color}.  The patch generated $patchStyleErrors code style errors."
-#    return 1
-#  fi
-#  JIRA_COMMENT="$JIRA_COMMENT
-#
-#    {color:green}+1 checkstyle{color}.  The patch generated 0 code style errors."
-  return 0
-}
-
-###############################################################################
 ### Install the new jars so tests and findbugs can find all of the updated jars 
 buildAndInstall () {
   echo ""
@@ -529,77 +465,6 @@ buildAndInstall () {
 }
 
 
-###############################################################################
-### Check there are no changes in the number of Findbugs warnings
-checkFindbugsWarnings () {
-  findbugs_version=`${FINDBUGS_HOME}/bin/findbugs -version`
-  echo ""
-  echo ""
-  echo "======================================================================"
-  echo "======================================================================"
-  echo "    Determining number of patched Findbugs warnings."
-  echo "======================================================================"
-  echo "======================================================================"
-  echo ""
-  echo ""
-  
-  modules=$(findModules)
-  rc=0
-  for module in $modules;
-  do
-    cd $module
-    echo "  Running findbugs in $module"
-    module_suffix=`basename ${module}`
-    echo "$MVN clean test findbugs:findbugs -DskipTests -D${PROJECT_NAME}PatchProcess < /dev/null > $PATCH_DIR/patchFindBugsOutput${module_suffix}.txt 2>&1" 
-    $MVN clean test findbugs:findbugs -DskipTests -D${PROJECT_NAME}PatchProcess < /dev/null > $PATCH_DIR/patchFindBugsOutput${module_suffix}.txt 2>&1
-    (( rc = rc + $? ))
-    cd -
-  done
-
-  if [ $rc != 0 ] ; then
-    JIRA_COMMENT="$JIRA_COMMENT
-
-    {color:red}-1 findbugs{color}.  The patch appears to cause Findbugs (version ${findbugs_version}) to fail."
-    return 1
-  fi
-    
-  findbugsWarnings=0
-  for file in $(find $BASEDIR -name findbugsXml.xml)
-  do
-    relative_file=${file#$BASEDIR/} # strip leading $BASEDIR prefix
-    if [ ! $relative_file == "target/findbugsXml.xml" ]; then
-      module_suffix=${relative_file%/target/findbugsXml.xml} # strip trailing path
-      module_suffix=`basename ${module_suffix}`
-    fi
-    
-    cp $file $PATCH_DIR/patchFindbugsWarnings${module_suffix}.xml
-    $FINDBUGS_HOME/bin/setBugDatabaseInfo -timestamp "01/01/2000" \
-      $PATCH_DIR/patchFindbugsWarnings${module_suffix}.xml \
-      $PATCH_DIR/patchFindbugsWarnings${module_suffix}.xml
-    newFindbugsWarnings=`$FINDBUGS_HOME/bin/filterBugs -first "01/01/2000" $PATCH_DIR/patchFindbugsWarnings${module_suffix}.xml \
-      $PATCH_DIR/newPatchFindbugsWarnings${module_suffix}.xml | $AWK '{print $1}'`
-    echo "Found $newFindbugsWarnings Findbugs warnings ($file)"
-    findbugsWarnings=$((findbugsWarnings+newFindbugsWarnings))
-    $FINDBUGS_HOME/bin/convertXmlToText -html \
-      $PATCH_DIR/newPatchFindbugsWarnings${module_suffix}.xml \
-      $PATCH_DIR/newPatchFindbugsWarnings${module_suffix}.html
-    if [[ $newFindbugsWarnings > 0 ]] ; then
-      JIRA_COMMENT_FOOTER="Findbugs warnings: $BUILD_URL/artifact/trunk/patchprocess/newPatchFindbugsWarnings${module_suffix}.html
-$JIRA_COMMENT_FOOTER"
-    fi
-  done
-
-  if [[ $findbugsWarnings -gt 0 ]] ; then
-    JIRA_COMMENT="$JIRA_COMMENT
-
-    {color:red}-1 findbugs{color}.  The patch appears to introduce $findbugsWarnings new Findbugs (version ${findbugs_version}) warnings."
-    return 1
-  fi
-  JIRA_COMMENT="$JIRA_COMMENT
-
-    {color:green}+1 findbugs{color}.  The patch does not introduce any new Findbugs (version ${findbugs_version}) warnings."
-  return 0
-}
 
 ###############################################################################
 ### Verify eclipse:eclipse works
@@ -644,7 +509,7 @@ runTests () {
   echo ""
 
   failed_tests=""
-  modules=$(findModules)
+  # modules=$(findModules)
   #
   # If we are building hadoop-hdfs-project, we must build the native component
   # of hadoop-common-project first.  In order to accomplish this, we move the
@@ -655,31 +520,31 @@ runTests () {
   # explicitly insert a mvn compile -Pnative of common, to ensure that the
   # native libraries show up where we need them.
   #
-  building_common=0
-  for module in $modules; do
-      if [[ $module == hadoop-hdfs-project* ]]; then
-          hdfs_modules="$hdfs_modules $module"
-      elif [[ $module == hadoop-common-project* ]]; then
-          ordered_modules="$ordered_modules $module"
-          building_common=1
-      else
-          ordered_modules="$ordered_modules $module"
-      fi
-  done
-  if [ -n "$hdfs_modules" ]; then
-      ordered_modules="$ordered_modules $hdfs_modules"
-      if [[ $building_common -eq 0 ]]; then
-          echo "  Building hadoop-common with -Pnative in order to provide \
-libhadoop.so to the hadoop-hdfs unit tests."
-          echo "  $MVN compile -D${PROJECT_NAME}PatchProcess"
-          if ! $MVN compile -D${PROJECT_NAME}PatchProcess; then
-              JIRA_COMMENT="$JIRA_COMMENT
-        {color:red}-1 core tests{color}.  Failed to build the native portion \
-of hadoop-common prior to running the unit tests in $ordered_modules"
-              return 1
-          fi
-      fi
-  fi
+  # building_common=0
+  # for module in $modules; do
+      # if [[ $module == hadoop-hdfs-project* ]]; then
+          # hdfs_modules="$hdfs_modules $module"
+      # elif [[ $module == hadoop-common-project* ]]; then
+          # ordered_modules="$ordered_modules $module"
+          # building_common=1
+      # else
+          # ordered_modules="$ordered_modules $module"
+      # fi
+  # done
+  # if [ -n "$hdfs_modules" ]; then
+      # ordered_modules="$ordered_modules $hdfs_modules"
+      # if [[ $building_common -eq 0 ]]; then
+          # echo "  Building hadoop-common with -Pnative in order to provide \
+# libhadoop.so to the hadoop-hdfs unit tests."
+          # echo "  $MVN compile -D${PROJECT_NAME}PatchProcess"
+          # if ! $MVN compile -D${PROJECT_NAME}PatchProcess; then
+              # JIRA_COMMENT="$JIRA_COMMENT
+        # {color:red}-1 core tests{color}.  Failed to build the native portion \
+# of hadoop-common prior to running the unit tests in $ordered_modules"
+              # return 1
+          # fi
+      # fi
+  # fi
   failed_test_builds=""
   test_timeouts=""
   for module in $ordered_modules; do
@@ -784,42 +649,6 @@ findModules () {
   rm $TMP_MODULES
   echo $CHANGED_MODULES
 }
-###############################################################################
-### Run the test-contrib target
-runContribTests () {
-  echo ""
-  echo ""
-  echo "======================================================================"
-  echo "======================================================================"
-  echo "    Running contrib tests."
-  echo "======================================================================"
-  echo "======================================================================"
-  echo ""
-  echo ""
-
-  if [[ `$GREP -c 'test-contrib' build.xml` == 0 ]] ; then
-    echo "No contrib tests in this project."
-    return 0
-  fi
-
-  ### Kill any rogue build processes from the last attempt
-  $PS auxwww | $GREP ${PROJECT_NAME}PatchProcess | $AWK '{print $2}' | /usr/bin/xargs -t -I {} /bin/kill -9 {} > /dev/null
-
-  #echo "$ANT_HOME/bin/ant -Dversion="${VERSION}" $ECLIPSE_PROPERTY -DHadoopPatchProcess= -Dtest.junit.output.format=xml -Dtest.output=no test-contrib"
-  #$ANT_HOME/bin/ant -Dversion="${VERSION}" $ECLIPSE_PROPERTY -DHadoopPatchProcess= -Dtest.junit.output.format=xml -Dtest.output=no test-contrib
-  echo "NOP"
-  if [[ $? != 0 ]] ; then
-    JIRA_COMMENT="$JIRA_COMMENT
-
-    {color:red}-1 contrib tests{color}.  The patch failed contrib unit tests."
-    return 1
-  fi
-  JIRA_COMMENT="$JIRA_COMMENT
-
-    {color:green}+1 contrib tests{color}.  The patch passed contrib unit tests."
-  return 0
-}
-
 ###############################################################################
 ### Run the inject-system-faults target
 checkInjectSystemFaults () {
@@ -983,17 +812,12 @@ if [[ $JAVAC_RET == 2 ]] ; then
   cleanupAndExit 1
 fi
 (( RESULT = RESULT + $JAVAC_RET ))
-### Checkstyle not implemented yet
-#checkStyle
-#(( RESULT = RESULT + $? ))
 
 echo "before buildAndInstall $RESULT"
 
 buildAndInstall
-# checkEclipseGeneration
-# (( RESULT = RESULT + $? ))
-# checkFindbugsWarnings
-# (( RESULT = RESULT + $? ))
+checkEclipseGeneration
+(( RESULT = RESULT + $? ))
 
 echo "before checkReleaseAuditWarnings $RESULT"
 
@@ -1005,8 +829,6 @@ echo "before runTests $RESULT"
 if [[ $JENKINS == "true" || $RUN_TESTS == "true" ]] ; then
   runTests
   (( RESULT = RESULT + $? ))
-  # runContribTests
-  # (( RESULT = RESULT + $? ))
 fi
 checkInjectSystemFaults
 (( RESULT = RESULT + $? ))
