@@ -88,7 +88,7 @@ public class CopyOnWriteHashSetJUnitTest extends TestCase {
     ObjectInputStream in = new ObjectInputStream(new ByteArrayInputStream(boas.toByteArray()));
     Set<String> result = (Set<String>) in.readObject();
     assertEquals(set, result);
-    assertFalse(result instanceof CopyOnWriteHashSet);
+    assertTrue(result instanceof CopyOnWriteHashSet);
   }
 
 }
