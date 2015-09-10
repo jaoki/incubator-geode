@@ -1381,7 +1381,45 @@ public abstract class AbstractDistributionConfig
   public boolean isMemcachedBindAddressModifiable() {
     return _modifiableDefault();
   }
+  
+  protected void checkRedisPort(int value) {
+    minMaxCheck(REDIS_PORT_NAME, value, 0, 65535);
+  }
+  protected void checkRedisBindAddress(String value) {
+    _checkIfModifiable(REDIS_BIND_ADDRESS_NAME);
+    if (value != null && value.length() > 0 &&
+        !SocketCreator.isLocalHost(value)) {
+      throw new IllegalArgumentException(
+          LocalizedStrings.AbstractDistributionConfig_REDIS_BIND_ADDRESS_0_INVALID_MUST_BE_IN_1
+          .toLocalizedString(new Object[]{value, SocketCreator.getMyAddresses()
+          }));
+    }
+  }
+  
+  protected void checkRedisPassword(String value) {
+    
+  }
+  
+  public boolean isRedisBindAddressModifiable() {
+    return _modifiableDefault();
+  }
 
+  public boolean isRedisPortModifiable() {
+    return _modifiableDefault();
+  }
+  
+  public boolean isRedisPasswordModifiable() {
+    return _modifiableDefault();
+  }
+
+  public boolean isOffHeapMemorySizeModifiable() {
+    return _modifiableDefault();
+  }
+  
+  protected void checkOffHeapMemorySize(String value) {
+    _checkIfModifiable(OFF_HEAP_MEMORY_SIZE_NAME);
+  }
+  
   protected void checkEnableSharedConfiguration() {
     _checkIfModifiable(ENABLE_CLUSTER_CONFIGURATION_NAME);
   }
@@ -1411,6 +1449,18 @@ public abstract class AbstractDistributionConfig
     return _modifiableDefault();
   }
 
+  public boolean isLockMemoryModifiable() {
+    return _modifiableDefault();
+  }
+  
+  public boolean isDistributedTransactionsModifiable() {
+    return _modifiableDefault();
+  }
+  
+  protected void checkLockMemory(final boolean value) {
+    _checkIfModifiable(LOCK_MEMORY_NAME);
+  }
+    
   // AbstractConfig overriding methods
   
   @Override
@@ -1510,6 +1560,9 @@ public abstract class AbstractDistributionConfig
       MEMCACHED_PORT_NAME,
       MEMCACHED_PROTOCOL_NAME,
       MEMCACHED_BIND_ADDRESS_NAME,
+      REDIS_PORT_NAME,
+      REDIS_BIND_ADDRESS_NAME,
+      REDIS_PASSWORD_NAME,
       USER_COMMAND_PACKAGES,
       ENABLE_CLUSTER_CONFIGURATION_NAME,
       USE_CLUSTER_CONFIGURATION_NAME,
@@ -1532,7 +1585,10 @@ public abstract class AbstractDistributionConfig
       HTTP_SERVICE_SSL_REQUIRE_AUTHENTICATION_NAME,
       HTTP_SERVICE_SSL_PROTOCOLS_NAME,
       HTTP_SERVICE_SSL_CIPHERS_NAME,
-      HTTP_SERVICE_SSL_KEYSTORE_NAME,HTTP_SERVICE_SSL_KEYSTORE_TYPE_NAME,HTTP_SERVICE_SSL_KEYSTORE_PASSWORD_NAME,HTTP_SERVICE_SSL_TRUSTSTORE_NAME,HTTP_SERVICE_SSL_TRUSTSTORE_PASSWORD_NAME
+      HTTP_SERVICE_SSL_KEYSTORE_NAME,HTTP_SERVICE_SSL_KEYSTORE_TYPE_NAME,HTTP_SERVICE_SSL_KEYSTORE_PASSWORD_NAME,HTTP_SERVICE_SSL_TRUSTSTORE_NAME,HTTP_SERVICE_SSL_TRUSTSTORE_PASSWORD_NAME,
+      OFF_HEAP_MEMORY_SIZE_NAME, 
+      LOCK_MEMORY_NAME,
+      DISTRIBUTED_TRANSACTIONS_NAME
     };
     List atts = Arrays.asList(myAtts);
     Collections.sort(atts);
@@ -1756,6 +1812,12 @@ public abstract class AbstractDistributionConfig
       this.setMemcachedProtocol((String)attValue);
     } else if (attName.equalsIgnoreCase(MEMCACHED_BIND_ADDRESS_NAME)) {
       this.setMemcachedBindAddress((String)attValue);
+    } else if (attName.equalsIgnoreCase(REDIS_PORT_NAME)) {
+      this.setRedisPort(((Integer)attValue).intValue());
+    } else if (attName.equalsIgnoreCase(REDIS_BIND_ADDRESS_NAME)) {
+      this.setRedisBindAddress((String)attValue);
+    } else if (attName.equalsIgnoreCase(REDIS_PASSWORD_NAME)) {
+      this.setRedisPassword((String)attValue);
     } else if (attName.equalsIgnoreCase(USER_COMMAND_PACKAGES)) {
       this.setUserCommandPackages((String)attValue);
     } else if (attName.equalsIgnoreCase(ENABLE_CLUSTER_CONFIGURATION_NAME)) {
@@ -1826,6 +1888,12 @@ public abstract class AbstractDistributionConfig
       this.setHttpServiceSSLTrustStorePassword((String)attValue);
     } else if (attName.equalsIgnoreCase(START_DEV_REST_API_NAME)) {
       this.setStartDevRestApi(((Boolean)attValue).booleanValue());
+    } else if (attName.equalsIgnoreCase(OFF_HEAP_MEMORY_SIZE_NAME)) {
+      this.setOffHeapMemorySize((String)attValue);
+    } else if (attName.equalsIgnoreCase(LOCK_MEMORY_NAME)) {
+      this.setLockMemory((Boolean)attValue);
+    } else if (attName.equalsIgnoreCase(DISTRIBUTED_TRANSACTIONS_NAME)) {
+      this.setDistributedTransactions(((Boolean)attValue).booleanValue());
     } else {
       throw new InternalGemFireException(LocalizedStrings.AbstractDistributionConfig_UNHANDLED_ATTRIBUTE_NAME_0.toLocalizedString(attName));
     }
@@ -2034,6 +2102,12 @@ public abstract class AbstractDistributionConfig
       return this.getMemcachedProtocol();
     } else if (attName.equalsIgnoreCase(MEMCACHED_BIND_ADDRESS_NAME)) {
       return this.getMemcachedBindAddress();
+    } else if (attName.equalsIgnoreCase(REDIS_PORT_NAME)) {
+      return this.getRedisPort();
+    } else if (attName.equalsIgnoreCase(REDIS_BIND_ADDRESS_NAME)) {
+      return this.getRedisBindAddress();
+    } else if (attName.equalsIgnoreCase(REDIS_PASSWORD_NAME)) {
+      return this.getRedisPassword();
     } else if (attName.equalsIgnoreCase(USER_COMMAND_PACKAGES)) {
       return this.getUserCommandPackages();
     } else if (attName.equalsIgnoreCase(ENABLE_CLUSTER_CONFIGURATION_NAME)) {
@@ -2104,6 +2178,12 @@ public abstract class AbstractDistributionConfig
       return this.getHttpServiceSSLTrustStorePassword();
     } else if (attName.equalsIgnoreCase(START_DEV_REST_API_NAME)) {
       return this.getStartDevRestApi();
+    } else if (attName.equalsIgnoreCase(OFF_HEAP_MEMORY_SIZE_NAME)) {
+      return this.getOffHeapMemorySize();
+    } else if (attName.equalsIgnoreCase(LOCK_MEMORY_NAME)) {
+      return this.getLockMemory();
+    } else if (attName.equalsIgnoreCase(DISTRIBUTED_TRANSACTIONS_NAME)) {
+      return this.getDistributedTransactions();
     } else {
       throw new InternalGemFireException(LocalizedStrings.AbstractDistributionConfig_UNHANDLED_ATTRIBUTE_NAME_0.toLocalizedString(attName));
     }
@@ -2313,10 +2393,18 @@ public abstract class AbstractDistributionConfig
       return this.isMemcachedProtocolModifiable();
     } else if (attName.equalsIgnoreCase(MEMCACHED_BIND_ADDRESS_NAME)) {
       return this.isMemcachedBindAddressModifiable();
+    } else if (attName.equalsIgnoreCase(REDIS_PORT_NAME)) {
+      return this.isRedisPortModifiable();
+    } else if (attName.equalsIgnoreCase(REDIS_BIND_ADDRESS_NAME)) {
+      return this.isRedisBindAddressModifiable();
+    } else if (attName.equalsIgnoreCase(REDIS_PASSWORD_NAME)) {
+      return this.isRedisPasswordModifiable();
     } else if (attName.equalsIgnoreCase(USER_COMMAND_PACKAGES)) {
       return this.isUserCommandPackagesModifiable();
     } else if (attName.equalsIgnoreCase(ENABLE_CLUSTER_CONFIGURATION_NAME)) {
       return this.isEnableSharedConfigurationModifiable();
+    } else if (attName.equalsIgnoreCase(OFF_HEAP_MEMORY_SIZE_NAME)) {
+      return this.isOffHeapMemorySizeModifiable();
     } else if (attName.equalsIgnoreCase(LOAD_CLUSTER_CONFIG_FROM_DIR_NAME)) {
       return this.isLoadSharedConfigFromDirModifiable();
     } else if (attName.equalsIgnoreCase(USE_CLUSTER_CONFIGURATION_NAME)) {
@@ -2383,7 +2471,11 @@ public abstract class AbstractDistributionConfig
       return this.isHttpServiceSSLTrustStorePasswordModifiable();
     } else if (attName.equalsIgnoreCase(START_DEV_REST_API_NAME)) {
       return this.isStartDevRestApiModifiable();
-    } else {
+    } else if (attName.equalsIgnoreCase(LOCK_MEMORY_NAME)) {
+      return this.isLockMemoryModifiable();
+    } else if (attName.equals(DISTRIBUTED_TRANSACTIONS_NAME)) {
+      return this.isDistributedTransactionsModifiable();
+    }else {
       throw new InternalGemFireException(LocalizedStrings.AbstractDistributionConfig_UNHANDLED_ATTRIBUTE_NAME_0.toLocalizedString(attName));
     }
   }
@@ -2594,6 +2686,12 @@ public abstract class AbstractDistributionConfig
       return String.class;
     } else if (attName.equalsIgnoreCase(MEMCACHED_BIND_ADDRESS_NAME)) {
       return String.class;
+    } else if (attName.equalsIgnoreCase(REDIS_PORT_NAME)) {
+      return Integer.class;
+    } else if (attName.equalsIgnoreCase(REDIS_BIND_ADDRESS_NAME)) {
+      return String.class;
+    } else if (attName.equalsIgnoreCase(REDIS_PASSWORD_NAME)) {
+      return String.class;
     } else if (attName.equalsIgnoreCase(USER_COMMAND_PACKAGES)) {
       return String.class;
     } else if (attName.equalsIgnoreCase(ENABLE_CLUSTER_CONFIGURATION_NAME)) {
@@ -2664,7 +2762,14 @@ public abstract class AbstractDistributionConfig
       return String.class;
     } else if (attName.equalsIgnoreCase(START_DEV_REST_API_NAME)) {
       return Boolean.class;
-    } else {
+    } else if (attName.equalsIgnoreCase(OFF_HEAP_MEMORY_SIZE_NAME)) {
+      return String.class;
+    } else if (attName.equalsIgnoreCase(LOCK_MEMORY_NAME)) {
+      return Boolean.class;
+    } else if (attName.equalsIgnoreCase(DISTRIBUTED_TRANSACTIONS_NAME)) {
+      return Boolean.class;
+    } 
+    else {
       throw new InternalGemFireException(LocalizedStrings.AbstractDistributionConfig_UNHANDLED_ATTRIBUTE_NAME_0.toLocalizedString(attName));
     }
   }
@@ -3041,7 +3146,9 @@ public abstract class AbstractDistributionConfig
     m.put(MEMCACHED_PORT_NAME, "The port GemFireMemcachedServer will listen on. Default is 0. Set to zero to disable GemFireMemcachedServer.");
     m.put(MEMCACHED_PROTOCOL_NAME, "The protocol that GemFireMemcachedServer understands. Default is ASCII. Values may be ASCII or BINARY");
     m.put(MEMCACHED_BIND_ADDRESS_NAME, "The address the GemFireMemcachedServer will listen on for remote connections. Default is \"\" which causes the GemFireMemcachedServer to listen on the host's default address. This property is ignored if memcached-port is \"0\".");
-
+    m.put(REDIS_PORT_NAME, "The port GemFireRedisServer will listen on. Default is 0. Set to zero to disable GemFireRedisServer.");
+    m.put(REDIS_BIND_ADDRESS_NAME, "The address the GemFireRedisServer will listen on for remote connections. Default is \"\" which causes the GemFireRedisServer to listen on the host's default address. This property is ignored if redis-port is \"0\".");
+    m.put(REDIS_PASSWORD_NAME, "The password which client of GemFireRedisServer must use to authenticate themselves. The default is none and no authentication will be required.");
     m.put(ENABLE_CLUSTER_CONFIGURATION_NAME, LocalizedStrings.AbstractDistributionConfig_ENABLE_SHARED_CONFIGURATION.toLocalizedString());
     m.put(USE_CLUSTER_CONFIGURATION_NAME, LocalizedStrings.AbstractDistributionConfig_USE_SHARED_CONFIGURATION.toLocalizedString());
     m.put(LOAD_CLUSTER_CONFIG_FROM_DIR_NAME, LocalizedStrings.AbstractDistributionConfig_LOAD_SHARED_CONFIGURATION_FROM_DIR.toLocalizedString(SharedConfiguration.CLUSTER_CONFIG_ARTIFACTS_DIR_NAME));
@@ -3138,7 +3245,10 @@ public abstract class AbstractDistributionConfig
     
     
     m.put(START_DEV_REST_API_NAME, "If true then the developer(API) REST service will be started when the cache is created. Defaults to false.");
+    m.put(OFF_HEAP_MEMORY_SIZE_NAME, LocalizedStrings.AbstractDistributionConfig_OFF_HEAP_MEMORY_SIZE_0.toLocalizedString(DEFAULT_OFF_HEAP_MEMORY_SIZE));
     dcAttDescriptions = Collections.unmodifiableMap(m);
+    m.put(LOCK_MEMORY_NAME, LocalizedStrings.AbstractDistributionConfig_LOCK_MEMORY.toLocalizedString(DEFAULT_LOCK_MEMORY));
+    m.put(DISTRIBUTED_TRANSACTIONS_NAME, "Flag to indicate whether all transactions including JTA should be distributed transactions.  Default is false, meaning colocated transactions.");
   }
   /**
    * Used by unit tests.
