@@ -92,10 +92,8 @@ Geode applications can be written in a number of client technologies:
 
 # Build environment in Docker
 ```
-pushd dev-tools/build
-docker build --rm=true -t geode/build .
-popd
-docker run -i -t --rm=true -e HOME=/root -w $PWD -v $HOME:/root -v $PWD:$PWD geode/build bash
+dev-tools/build/start-docker.sh
+
 ```
 
 
