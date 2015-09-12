@@ -29,6 +29,7 @@ import com.gemstone.gemfire.cache.ExpirationAction;
 import com.gemstone.gemfire.cache.ExpirationAttributes;
 import com.gemstone.gemfire.cache.RegionDestroyedException;
 import com.gemstone.gemfire.cache.util.BridgeWriterException;
+import com.gemstone.gemfire.distributed.internal.InternalDistributedSystem;
 import com.gemstone.gemfire.distributed.internal.PooledExecutorWithDMStats;
 import com.gemstone.gemfire.internal.SystemTimer;
 import com.gemstone.gemfire.internal.i18n.LocalizedStrings;
@@ -91,7 +92,7 @@ public abstract class ExpiryTask extends SystemTimer.SystemTimerTask {
    * region expires, due to either time-to-live or idle-timeout (whichever
    * will occur first), or 0 if neither are used.
    */
-  long getExpirationTime() throws EntryNotFoundException {
+  public long getExpirationTime() throws EntryNotFoundException {
     long ttl = getTTLExpirationTime();
     long idle = getIdleExpirationTime();
     if (ttl == 0) {
@@ -103,7 +104,7 @@ public abstract class ExpiryTask extends SystemTimer.SystemTimerTask {
   }
 
   /** Return the absolute time when TTL expiration occurs, or 0 if not used */
-  protected final long getTTLExpirationTime() throws EntryNotFoundException {
+  public final long getTTLExpirationTime() throws EntryNotFoundException {
     long ttl = getTTLAttributes().getTimeout();
     long tilt = 0;
     if (ttl > 0) {
@@ -116,7 +117,7 @@ public abstract class ExpiryTask extends SystemTimer.SystemTimerTask {
   }
 
   /** Return the absolute time when idle expiration occurs, or 0 if not used */
-  protected final long getIdleExpirationTime() throws EntryNotFoundException {
+  public final long getIdleExpirationTime() throws EntryNotFoundException {
     long idle = getIdleAttributes().getTimeout();
     long tilt = 0;
     if (idle > 0) {
@@ -436,7 +437,7 @@ public abstract class ExpiryTask extends SystemTimer.SystemTimerTask {
     return super.toString() + " for " + getLocalRegion()
       + ", ttl expiration time: " + expTtl
       + ", idle expiration time: " + expIdle +
-      ("[now:" + System.currentTimeMillis() + "]");
+      ("[now:" + calculateNow() + "]");
   }
 
   ////// Abstract methods ///////
@@ -467,12 +468,19 @@ public abstract class ExpiryTask extends SystemTimer.SystemTimerTask {
    * {@link #clearNow()} in a finally block after calling this method.
    */
   public static void setNow() {
+    now.set(calculateNow());
+  }
+  
+  private static long calculateNow() {
     GemFireCacheImpl cache = GemFireCacheImpl.getInstance();
     if (cache != null) {
-      // Do not use cache.cacheTimeMillis here.
-      // Since expiration uses the System timer we need to use its clock.
-      now.set(System.currentTimeMillis());
+      // Use cache.cacheTimeMillis here. See bug 52267.
+      InternalDistributedSystem ids = cache.getDistributedSystem();
+      if (ids != null) {
+        return ids.getClock().cacheTimeMillis();
+      }
     }
+    return 0L;
   }
 
   /**
@@ -495,9 +503,7 @@ public abstract class ExpiryTask extends SystemTimer.SystemTimerTask {
     if (tl != null) {
       result = tl.longValue();
     } else {
-      // Do not use cache.cacheTimeMillis here.
-      // Since expiration uses the System timer we need to use its clock.
-      result = System.currentTimeMillis();
+      result = calculateNow();
     }
     return result;
   }

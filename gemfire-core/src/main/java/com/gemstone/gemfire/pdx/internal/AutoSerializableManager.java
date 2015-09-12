@@ -133,8 +133,6 @@ public class AutoSerializableManager {
       new CopyOnWriteHashSet<String>();
 
 
-  private static final Map<ReflectionBasedAutoSerializer, AutoSerializableManager> instances = new CopyOnWriteWeakHashMap<ReflectionBasedAutoSerializer, AutoSerializableManager>();
-
   private final ReflectionBasedAutoSerializer owner;
   
   public ReflectionBasedAutoSerializer getOwner() {
@@ -144,17 +142,11 @@ public class AutoSerializableManager {
   public static AutoSerializableManager create(ReflectionBasedAutoSerializer owner, boolean checkPortability, String... patterns) {
     AutoSerializableManager result = new AutoSerializableManager(owner);
     result.reconfigure(checkPortability, patterns);
-    instances.put(owner, result);
     return result;
   }
   private AutoSerializableManager(ReflectionBasedAutoSerializer owner) {
     this.owner = owner;
   }
-
-  public static AutoSerializableManager getInstance(ReflectionBasedAutoSerializer owner) {
-    return instances.get(owner);
-  }
-
 
   public Map<Class<?>, AutoClassInfo> getClassMap() {
     return classMap;
@@ -2158,8 +2150,9 @@ public class AutoSerializableManager {
     }
 
     StringBuilder sb = new StringBuilder();
-    // This is so that we can exclude duplicate
-    Set<String> tmp = new HashSet<String>();
+    // This is so that we can exclude duplicates
+    // LinkedHashSet is used to preserve the order of classPatterns. See bug 52286.
+    Set<String> tmp = new LinkedHashSet<String>();
     for (Pattern p : classPatterns) {
       tmp.add(p.pattern());
     }
