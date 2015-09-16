@@ -17,11 +17,11 @@
 
 set -e
 
-DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
+SCRIPT_DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
 
-pushd ${DIR}
+pushd ${SCRIPT_DIR}
 
-docker build -t geode/build .
+docker build -t geode/build ../../docker/.
 
 popd
 
@@ -43,7 +43,7 @@ ENV HOME /home/${USER_NAME}
 UserSpecificDocker
 
 # Go to root
-pushd ${DIR}/../..
+pushd ${SCRIPT_DIR}/../..
 
 docker run -i -t \
   --rm=true \
