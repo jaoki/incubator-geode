@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM centos:latest
+FROM centos:centos7
 MAINTAINER Geode Community <dev@geode.incubator.apache.org>
 
 LABEL Vendor="Apache Geode (incubating)"
@@ -26,13 +26,6 @@ ENV	JAVA_HOME /jdk1.8.0_51
 RUN	yum install -y wget which tar git \
 	&& wget --no-cookies --no-check-certificate --header "Cookie: gpw_e24=http%3A%2F%2Fwww.oracle.com%2F; oraclelicense=accept-securebackup-cookie" "http://download.oracle.com/otn-pub/java/jdk/8u51-b16/jdk-8u51-linux-x64.tar.gz" \
 	&& tar xf jdk-8u51-linux-x64.tar.gz \
-	&& git clone -b develop https://github.com/apache/incubator-geode.git \
-	&& cd incubator-geode \
-	&& ./gradlew build -Dskip.tests=true \
-	&& ls /incubator-geode | grep -v gemfire-assembly | xargs rm -rf \
-	&& rm -rf /root/.gradle/ \
-	&& rm -rf /incubator-geode/gemfire-assembly/build/distributions/ \
-	&& rm -rf /jdk-8u51-linux-x64.tar.gz \
 	&& rm -rf $JAVA_HOME/*src.zip \
 						$JAVA_HOME/lib/missioncontrol \
 						$JAVA_HOME/lib/visualvm \
@@ -54,19 +47,7 @@ RUN	yum install -y wget which tar git \
 						$JAVA_HOME/jre/lib/amd64/libjavafx*.so \
 						$JAVA_HOME/jre/lib/amd64/libjfx*.so \
 	&& rm -rf /usr/share/locale/* \
-	&& yum remove -y perl \
 	&& yum clean all
 
-ENV GEODE_HOME /incubator-geode/gemfire-assembly/build/install/apache-geode
-ENV PATH $PATH:$GEODE_HOME/bin:$JAVA_HOME/bin
+ENV PATH $PATH:$JAVA_HOME/bin
 
-# Default ports:
-# RMI/JMX 1099
-# REST 8080
-# PULE 7070
-# LOCATOR 10334
-# CACHESERVER 40404
-EXPOSE  8080 10334 40404 1099 7070
-VOLUME ["/data/"]
-CMD ["gfsh"]
-#ENTRYPOINT ["gfsh"]
