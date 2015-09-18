@@ -19,7 +19,7 @@ set -e -x -u
 
 SCRIPT_DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
 
-source ${SCRIPT_DIR}/../base/build-base-docker.sh
+source ${SCRIPT_DIR}/../dev-tools/docker/base/build-base-docker.sh
 
 IMAGE_NAME="geode/runtime:${DOCKER_ENV_VERSION}"
 
