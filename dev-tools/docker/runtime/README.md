@@ -13,7 +13,7 @@ This may take a while depending on your internet connection, but it's worth sinc
 1. Then you can start gfsh as well in order to perform more commands:
 
 ```
-docker run -it -p 10334:10334 -p 7575:7575 -p 1099:1099  geode/runtime:0.1 gfsh
+docker run --rm=true -it -p 10334:10334 -p 7575:7575 -p 1099:1099  geode/runtime:0.1 gfsh
 ```
 
 
