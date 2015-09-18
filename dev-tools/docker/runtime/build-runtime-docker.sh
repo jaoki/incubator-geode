@@ -21,12 +21,12 @@ SCRIPT_DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
 
 source ${SCRIPT_DIR}/../base/build-base-docker.sh
 
-RUNTIME_IMAGE_NAME="geode/runtime:${DOCKER_ENV_VERSION}"
+IMAGE_NAME="geode/runtime:${DOCKER_ENV_VERSION}"
 
 pushd ${SCRIPT_DIR}
 
 # Build runtime image
-docker build --rm=true -t ${RUNTIME_IMAGE_NAME} .
+docker build --rm=true -t ${IMAGE_NAME} .
 
 popd
 

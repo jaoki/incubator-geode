@@ -15,13 +15,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-set -e
+set -e -x -u
 
 SCRIPT_DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
 
+source ${SCRIPT_DIR}/../base/build-base-docker.sh
+
+IMAGE_NAME="geode/compile:${DOCKER_ENV_VERSION}"
+
 pushd ${SCRIPT_DIR}
 
-docker build -t geode/build ../../docker/.
+docker build -t ${IMAGE_NAME} .
 
 popd
 
@@ -35,15 +39,15 @@ else # boot2docker uid and gid
   GROUP_ID=50
 fi
 
-docker build -t "geode/build-${USER_NAME}" - <<UserSpecificDocker
-FROM geode/build
+docker build -t "${IMAGE_NAME}-${USER_NAME}" - <<UserSpecificDocker
+FROM ${IMAGE_NAME} 
 RUN groupadd --non-unique -g ${GROUP_ID} ${USER_NAME}
 RUN useradd -g ${GROUP_ID} -u ${USER_ID} -k /root -m ${USER_NAME}
 ENV HOME /home/${USER_NAME}
 UserSpecificDocker
 
 # Go to root
-pushd ${SCRIPT_DIR}/../..
+pushd ${SCRIPT_DIR}/../../..
 
 docker run -i -t \
   --rm=true \
@@ -51,7 +55,7 @@ docker run -i -t \
   -u "${USER_NAME}" \
   -v "$PWD:/home/${USER_NAME}/incubator-geode" \
   -v "/home/${USER_NAME}/.m2:/home/${USER_NAME}/.m2" \
-  geode/build-${USER_NAME} \
+  ${IMAGE_NAME}-${USER_NAME} \
   bash
 
 popd

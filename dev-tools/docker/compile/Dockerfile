@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM centos:centos7
+FROM geode/base:0.1
 MAINTAINER Geode Community <dev@geode.incubator.apache.org>
 
 LABEL Vendor="Apache Geode (incubating)"
