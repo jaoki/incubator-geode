@@ -92,7 +92,7 @@ Geode applications can be written in a number of client technologies:
 
 # Build environment in Docker
 ```
-dev-tools/docker/start-docker.sh
+dev-tools/docker/compile/start-compile-docker.sh
 
 ```
 
