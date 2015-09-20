@@ -24,7 +24,7 @@ import subprocess
 class TestPatch:
     
     def runproc(self, cmd):
-        proc = subprocess.Popen(cmd)
+        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         stdout, stderr = proc.communicate()
         return proc.returncode, stdout, stderr
 
@@ -33,7 +33,6 @@ class TestPatch:
         print ""
         print "======================================================================"
         print "======================================================================"
-    #     print "    Testing patch for ${defect}."
         print message
         print "======================================================================"
         print "======================================================================"
@@ -62,10 +61,14 @@ class TestPatch:
         pass
 
     def checkout(self):
-#         returncode, stdout, stderr = self.runproc("/usr/bin/git status -s")
         returncode, stdout, stderr = self.runproc(["git", "status", "-s"])
-        if stdout != "":
+        if stdout != None:
             raise Exception("ERROR: can't run in a workspace that contains the following modifications")
+
+#         returncode, stdout, stderr = self.runproc(["git", "checkout", "--", "."])
+#         returncode, stdout, stderr = self.runproc(["git", "clean", "-x", "-f", "-d"])
+#         returncode, stdout, stderr = self.runproc(["git", "pull"])
+
 
 
     def test(self):
