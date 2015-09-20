@@ -62,13 +62,12 @@ class TestPatch:
 
     def checkout(self):
         returncode, stdout, stderr = self.runproc(["git", "status", "-s"])
-        print "aaa" + stdout + "bbb"
         if stdout != "":
             raise Exception("ERROR: can't run in a workspace that contains the following modifications")
 
-#         returncode, stdout, stderr = self.runproc(["git", "checkout", "--", "."])
-#         returncode, stdout, stderr = self.runproc(["git", "clean", "-x", "-f", "-d"])
-#         returncode, stdout, stderr = self.runproc(["git", "pull"])
+        returncode, stdout, stderr = self.runproc(["git", "checkout", "--", "."])
+        returncode, stdout, stderr = self.runproc(["git", "clean", "-x", "-f", "-d"])
+        returncode, stdout, stderr = self.runproc(["git", "pull"])
 
 
 
