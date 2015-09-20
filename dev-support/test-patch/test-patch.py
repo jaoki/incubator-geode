@@ -23,10 +23,14 @@ import subprocess
 
 class TestPatch:
     
-    def runproc(self, cmd):
+    def runproc(self, cmd, expected_returncode=0):
         proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         stdout, stderr = proc.communicate()
-        return proc.returncode, stdout, stderr
+        returncode = proc.returncode,
+        if returncode != expected_returncode:
+            raise Exception("error on " + cmd)
+
+        return returncode, stdout, stderr
 
     def print_banner(self, message):
         print ""
@@ -64,6 +68,11 @@ class TestPatch:
         returncode, stdout, stderr = self.runproc(["git", "status", "-s"])
         if stdout != "":
             raise Exception("ERROR: can't run in a workspace that contains the following modifications")
+
+        # avoid ssh fingerprint check
+        returncode, stdout, stderr = self.runproc(["ssh-keyscan", "github.com"])
+        with open("~/.ssh/known_hosts", "a") as f:
+            f.write(stdout)
 
         returncode, stdout, stderr = self.runproc(["git", "checkout", "--", "."])
         returncode, stdout, stderr = self.runproc(["git", "clean", "-x", "-f", "-d"])
