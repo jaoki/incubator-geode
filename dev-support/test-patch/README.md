@@ -13,5 +13,5 @@ run geode/compile docker.
 
 How to run test-patch
 ------------------------------
-./dev-support/test-patch/test-patch.sh --patch-dir=${TEST_PATCH_WORK} ${JIRA_NUMBER}
+./dev-support/test-patch/test-patch.py --patch-dir=${TEST_PATCH_WORK} --jira ${JIRA_NUMBER}
 
