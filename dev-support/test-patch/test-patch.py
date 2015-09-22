@@ -19,6 +19,7 @@ limitations under the License.
 import sys, os
 import argparse
 import subprocess
+import requests
 
 class TestPatchException(Exception):
     def __init__(self, message):
@@ -122,7 +123,12 @@ class TestPatch:
             os.makedirs(self.params.patch_dir)
 
     def download_patch(self):
-# https://issues.apache.org/jira/rest/api/2/issue/GEODE-70
+        response = requests.get("https://issues.apache.org/jira/rest/api/2/issue/" + self.params.jira)
+        data = response.json()
+        status = data["fields"]["status"]["name"]
+        if status != "Patch Available":
+            TestPatchException(self.params.jira + " is not Patch Available")
+
 
     def test(self):
         try:
@@ -131,6 +137,7 @@ class TestPatch:
             self.print_banner("Testing patch for " + self.params.jira + ".")
             self.checkout()
             self.prepare_patch_dir()
+            self.download_patch()
         except TestPatchException as e:
             print "[ERROR] " + str(e)
             sys.exit(2)
