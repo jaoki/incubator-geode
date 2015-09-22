@@ -8,7 +8,15 @@ The result is reported back to the correspoinding ticket, and if it is all good,
 
 Preconditions
 ------------------------------
-run geode/compile docker.
+run geode/compile docker image. See /dev-tools/docker/compile
+
+TODO
+----------------------
+wget https://bootstrap.pypa.io/get-pip.py
+sudo python get-pip.py
+pip install requests
+
+
 
 
 How to run test-patch

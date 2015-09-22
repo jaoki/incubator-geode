@@ -66,6 +66,7 @@ class TestPatch:
                 "--patch-dir",
                 action="store",
                 default="/tmp",
+                destination="patch_dir"
                 help="The directory for working and output files (default '/tmp')")
 
         self.params = parser.parse_args(argv)
@@ -103,12 +104,6 @@ class TestPatch:
         with open(self.KNOWN_FILE_LOCATION, mode) as f:
             f.write(stdout)
         return
-    
-    def prepare_patch_dir(self):
-        if not os.path.exists(self.params.patch_dir):
-            os.mkdir(self.params.patch_dir)
-
-        
 
     def checkout(self):
         returncode, stdout, stderr = self.runproc(["git", "status", "-s"])
@@ -121,9 +116,13 @@ class TestPatch:
         returncode, stdout, stderr = self.runproc(["git", "checkout", "--", "."])
         returncode, stdout, stderr = self.runproc(["git", "clean", "-x", "-f", "-d"])
         returncode, stdout, stderr = self.runproc(["git", "pull"])
-        raise Exception()
 
+    def prepare_patch_dir(self):
+        if not os.path.exists(self.params.patch_dir):
+            os.makedirs(self.params.patch_dir)
 
+    def download_patch(self):
+# https://issues.apache.org/jira/rest/api/2/issue/GEODE-70
 
     def test(self):
         try:
@@ -131,6 +130,7 @@ class TestPatch:
 
             self.print_banner("Testing patch for " + self.params.jira + ".")
             self.checkout()
+            self.prepare_patch_dir()
         except TestPatchException as e:
             print "[ERROR] " + str(e)
             sys.exit(2)
