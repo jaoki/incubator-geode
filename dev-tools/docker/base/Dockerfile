@@ -46,7 +46,8 @@ RUN	yum install -y wget which tar git \
 						$JAVA_HOME/jre/lib/amd64/libgstreamer-lite.so \
 						$JAVA_HOME/jre/lib/amd64/libjavafx*.so \
 						$JAVA_HOME/jre/lib/amd64/libjfx*.so \
-	&& rm -rf /usr/share/locale/* \
+						jdk-8u51-linux-x64.tar.gz \
+						/usr/share/locale/* \
 	&& yum clean all
 
 ENV PATH $PATH:$JAVA_HOME/bin
