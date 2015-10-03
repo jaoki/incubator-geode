@@ -48,6 +48,7 @@ RUN	yum install -y wget which tar git \
 						$JAVA_HOME/jre/lib/amd64/libjfx*.so \
 						jdk-8u51-linux-x64.tar.gz \
 						/usr/share/locale/* \
+    && yum remove -y perl \
 	&& yum clean all
 
 ENV PATH $PATH:$JAVA_HOME/bin
