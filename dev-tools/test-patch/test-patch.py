@@ -67,7 +67,7 @@ class TestPatch:
                 "--patch-dir",
                 action="store",
                 default="/tmp",
-                destination="patch_dir"
+                destination="patch_dir",
                 help="The directory for working and output files (default '/tmp')")
 
         self.params = parser.parse_args(argv)
